@@ -12,6 +12,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.units import inch
 from reportlab.lib import colors
+from flask_session import Session
+import tempfile
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -20,6 +22,15 @@ logger = logging.getLogger(__name__)
 # Create the app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default-secret-key-for-development")
+
+# Configure Flask-Session
+app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions in the filesystem
+app.config['SESSION_FILE_DIR'] = tempfile.mkdtemp()  # Temporary directory for session files
+app.config['SESSION_PERMANENT'] = False  # Sessions are not permanent
+app.config['SESSION_USE_SIGNER'] = True  # Sign session cookies for security
+
+# Initialize Flask-Session
+Session(app)
 
 # Create temporary directories to store uploaded PDFs and generated content
 UPLOAD_FOLDER = tempfile.mkdtemp()
@@ -99,7 +110,7 @@ def create_study_guide():
         
         # Save the study guide to a file instead of the session
         study_guide_file = os.path.join(app.config['OUTPUT_FOLDER'], f"{study_guide_id}_study_guide.txt")
-        with open(study_guide_file, 'w') as f:
+        with open(study_guide_file, 'w', encoding='utf-8') as f:  # Specify UTF-8 encoding
             f.write(study_guide)
         
         # Store only the ID in the session
@@ -127,18 +138,21 @@ def create_quiz():
         # Generate quiz using Gemini API
         quiz = generate_quiz(extracted_text, num_questions)
         
+        # Parse the JSON string into a Python object
+        quiz_data = json.loads(quiz)
+        
         # Generate a unique ID for this quiz
         quiz_id = str(uuid.uuid4())
         
         # Save the quiz to a file instead of the session
         quiz_file = os.path.join(app.config['OUTPUT_FOLDER'], f"{quiz_id}_quiz.json")
-        with open(quiz_file, 'w') as f:
+        with open(quiz_file, 'w', encoding='utf-8') as f:  # Specify UTF-8 encoding
             f.write(quiz)
         
         # Store only the ID in the session
         session['quiz_id'] = quiz_id
         
-        return render_template('quiz.html', quiz=quiz, pdf_filename=session.get('pdf_filename'))
+        return render_template('quiz.html', quiz=quiz_data, pdf_filename=session.get('pdf_filename'))
     
     except Exception as e:
         logger.error(f"Error generating quiz: {str(e)}")
@@ -162,7 +176,7 @@ def download_study_guide():
         return redirect(url_for('index'))
     
     # Read the original study guide
-    with open(study_guide_file, 'r') as source:
+    with open(study_guide_file, 'r', encoding='utf-8') as source:  # Specify UTF-8 encoding
         study_guide_content = source.read()
     
     # Create a PDF file
