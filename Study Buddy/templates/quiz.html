@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Quiz</li>
+            </ol>
+        </nav>
+        
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center bg-success text-white">
+                <h2 class="mb-0">
+                    <i class="fas fa-question-circle me-2"></i>
+                    Quiz: {{ pdf_filename }}
+                </h2>
+                <a href="{{ url_for('download_quiz') }}" class="btn btn-light btn-sm">
+                    <i class="fas fa-file-pdf me-2"></i>Download PDF
+                </a>
+            </div>
+            <div class="card-body">
+                <form id="quiz-questions-form">
+                    <div id="quiz-content">
+                        {% set quiz_data = quiz | tojson | safe %}
+                        {% set quiz_json = quiz_data | fromjson %}
+                        
+                        {% for question in quiz_json %}
+                            <div class="quiz-question" data-answer="{{ question.answer }}">
+                                <p class="question-text">{{ loop.index }}. {{ question.question }}</p>
+                                <div class="question-options">
+                                    {% for option in question.options %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="question{{ loop.parent.loop.index }}" id="q{{ loop.parent.loop.index }}_opt{{ loop.index }}" value="{{ option }}">
+                                            <label class="form-check-label" for="q{{ loop.parent.loop.index }}_opt{{ loop.index }}">
+                                                {{ option }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="question-feedback d-none"></div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="alert alert-info d-none" id="quiz-score"></div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </a>
+                        <div>
+                            <button type="button" id="check-answers" class="btn btn-primary">
+                                <i class="fas fa-check-circle me-2"></i>Check Answers
+                            </button>
+                            <a href="{{ url_for('create_quiz') }}" class="btn btn-success d-none" id="quiz-retry">
+                                <i class="fas fa-sync me-2"></i>Try New Quiz
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse quiz data from server
+        const quizData = JSON.parse('{{ quiz | tojson | safe }}');
+        
+        // Add additional JavaScript if needed for quiz interaction
+    });
+</script>
+{% endblock %}

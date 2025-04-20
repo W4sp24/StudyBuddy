@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12 text-center mb-4">
+        <h1 class="display-4">PDF Study Buddy</h1>
+        <p class="lead">Upload your PDF documents and generate comprehensive study guides and quizzes using AI</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        {% if not session.get('extracted_text') %}
+            <!-- PDF Upload Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-file-upload me-2"></i>Upload PDF
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form id="upload-form" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+                        <div class="upload-zone">
+                            <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-secondary"></i>
+                            <div class="mb-3">
+                                <p><i class="fas fa-file-pdf me-2"></i> Drag and drop your PDF file here</p>
+                                <p>- or -</p>
+                                <label for="pdf-file" class="btn btn-outline-secondary btn-sm mt-2">
+                                    <i class="fas fa-folder-open me-2"></i>Browse Files
+                                </label>
+                                <input type="file" class="form-control visually-hidden" id="pdf-file" name="pdf_file" accept=".pdf" required>
+                            </div>
+                            <div id="file-name-display" class="text-muted mb-3">No file selected</div>
+                            <button type="submit" id="upload-button" class="btn btn-primary processing-action">
+                                <i class="fas fa-upload me-2"></i>Upload & Process PDF
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>Maximum file size: 16MB. Only PDF files are accepted.</small>
+                </div>
+            </div>
+        {% else %}
+            <!-- PDF Processed Successfully -->
+            <div class="alert alert-success" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>PDF Processed:</strong> {{ session.get('pdf_filename', 'Your document') }} has been successfully processed. Now you can generate a study guide or quiz.
+            </div>
+            
+            <div class="row">
+                <!-- Study Guide Option -->
+                <div class="col-md-6">
+                    <div class="card feature-card">
+                        <div class="card-header bg-info text-white">
+                            <h4 class="card-title mb-0">
+                                <i class="fas fa-book me-2"></i>Study Guide
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            <p>Generate a comprehensive study guide with key points, summaries, and important concepts from your PDF.</p>
+                            <form action="{{ url_for('create_study_guide') }}" method="post">
+                                <button type="submit" class="btn btn-info w-100 processing-action">
+                                    <i class="fas fa-magic me-2"></i>Generate Study Guide
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quiz Option -->
+                <div class="col-md-6">
+                    <div class="card feature-card">
+                        <div class="card-header bg-success text-white">
+                            <h4 class="card-title mb-0">
+                                <i class="fas fa-question-circle me-2"></i>Quiz
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            <p>Create a multiple-choice quiz to test your knowledge based on the content of your PDF.</p>
+                            <form id="quiz-form" action="{{ url_for('create_quiz') }}" method="post">
+                                <div class="mb-3">
+                                    <label for="num-questions" class="form-label">Number of questions (1-20):</label>
+                                    <input type="number" class="form-control" id="num-questions" name="num_questions" min="1" max="20" value="5" required>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100 processing-action">
+                                    <i class="fas fa-tasks me-2"></i>Generate Quiz
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-3">
+                <a href="{{ url_for('clear_session') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-undo me-2"></i>Upload a Different PDF
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if not session.get('extracted_text') %}
+    <!-- Features Section -->
+    <div class="row mt-5">
+        <div class="col-12 text-center mb-4">
+            <h2>How It Works</h2>
+            <p class="text-muted">Transform your PDFs into interactive learning materials with our AI-powered tools</p>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-file-pdf fa-3x mb-3 text-primary"></i>
+                    <h5 class="card-title">1. Upload Your PDF</h5>
+                    <p class="card-text">Upload any academic paper, textbook, or study material in PDF format.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-robot fa-3x mb-3 text-info"></i>
+                    <h5 class="card-title">2. AI Processing</h5>
+                    <p class="card-text">Our AI analyzes the content using Google's Gemini 1.5 Flash API for deep understanding.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-graduation-cap fa-3x mb-3 text-success"></i>
+                    <h5 class="card-title">3. Study Materials</h5>
+                    <p class="card-text">Get personalized study guides and quizzes to enhance your learning.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
