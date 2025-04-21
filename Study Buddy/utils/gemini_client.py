@@ -25,7 +25,7 @@ def get_gemini_model():
     """
     try:
         # Use the Gemini model for text generation
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         return model
     except Exception as e:
         logger.error(f"Error initializing Gemini model: {str(e)}")
@@ -50,18 +50,43 @@ def generate_study_guide(text):
             logger.warning("Text truncated to fit within Gemini's token limit")
         
         prompt = f"""
-        Create a comprehensive study guide based on the following content:
+        Goal: Design and generate a comprehensive study reviewer on a specified topic.
         
-        {text}
+        Topic/Content{text}
         
-        Please include:
-        1. A brief summary of the main topics
-        2. Key concepts and definitions
-        3. Important facts and figures
-        4. Relationships between concepts
-        5. Bullet points of the most crucial information
-        
-        Format the study guide in a clean, organized manner with clear section headers and bullet points where appropriate.
+        Target Audience Level: Beginner/Student/College Level
+
+        Content Requirements:
+
+        - Define Key Terms: Clearly define all essential terms and concepts related to the topic.
+        - Provide Examples: Include short, relevant examples to illustrate concepts.
+        - Explain Core Principles: Detail the fundamental ideas and mechanisms of the topic.
+        - Include Comparisons/Contrasts (if applicable): Use tables or bullet points to compare related concepts.
+        - Code/Syntax Examples (if applicable): Provide code snippets or syntax examples using proper formatting and highlighting if the topic involves programming or specific syntax.
+        - Real-World Applications (if applicable): Briefly mention how the topic is used in practice.
+        - Compile a Glossary: Create a dedicated section at the very end listing key terms and their definitions.
+
+        Formatting Guidelines:
+
+        - Use Clear Headings: Structure the reviewer with main headings and subheadings (e.g., using Markdown #, ##, ###).
+        - Use Bullet Points: Ensure liberal use of bullet points (-) for lists, facts, definitions, and key points within sections.
+        - Use Tables: Create tables for comparisons or structured information when appropriate.
+        - Format Code: Use code blocks (```language) for any code examples.
+        - Use LaTeX (Optional): Use LaTeX formatting ($...$ or $$...$$) ONLY for mathematical or scientific notation where appropriate, NOT for regular text.
+
+        Style & Tone:
+
+        - Concise: Be direct and to the point, avoiding unnecessary jargon unless defined.
+        - Educational: Focus on explaining concepts clearly for the specified audience level.
+        - Friendly & Academic: Maintain a helpful yet formal and knowledgeable tone.
+        - Structured: Organize the information logically, like a study guide.
+
+        Output Format:
+
+        - Provide the output cleanly formatted for easy copy-pasting into documents or notes applications (like Google Docs, Notion, etc.).
+        - Avoid conversational filler at the beginning or end; go straight into the reviewer content.
+
+        Request: Generate the comprehensive reviewer based on the topic, level, content, formatting, and style guidelines provided above.
         """
         
         response = model.generate_content(prompt)
