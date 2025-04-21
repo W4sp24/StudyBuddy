@@ -1,12 +1,11 @@
-import os
 import logging
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 from werkzeug.utils import secure_filename
 import uuid
 import tempfile
 import json
-from utils.pdf_processor import extract_text_from_pdf
-from utils.gemini_client import generate_study_guide, generate_quiz
+from .utils.pdf_processor import extract_text_from_pdf
+from .utils.gemini_client import generate_study_guide, generate_quiz
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
@@ -14,6 +13,8 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from flask_session import Session
 import tempfile
+import os
+
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -397,3 +398,7 @@ def request_entity_too_large(error):
 def internal_server_error(error):
     flash('An unexpected error occurred. Please try again.', 'danger')
     return redirect(url_for('index')), 500
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))  # Use Railway's PORT or default to 8080
+    app.run(host="0.0.0.0", port=port)
