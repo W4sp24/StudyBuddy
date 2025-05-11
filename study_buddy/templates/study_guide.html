@@ -21,21 +21,25 @@
                 </a>
             </div>
             <div class="card-body">
-                <div class="study-guide-content">
-                    {{ study_guide | safe }}
-                </div>
+                <div id="markdown-content" style="display: none;">{{ study_guide }}</div>
+                <div id="rendered-content" class="table-bordered"></div> <!-- Add table-bordered class -->
             </div>
             <div class="card-footer">
-                <div class="d-flex justify-content-between">
-                    <a href="{{ url_for('index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Back
-                    </a>
-                    <a href="{{ url_for('create_quiz') }}" class="btn btn-success processing-action">
-                        <i class="fas fa-question-circle me-2"></i>Generate Quiz
-                    </a>
-                </div>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const markdownContent = document.getElementById('markdown-content').innerText;
+        const converter = new showdown.Converter();
+        const htmlContent = converter.makeHtml(markdownContent);
+        document.getElementById('rendered-content').innerHTML = htmlContent;
+    });
+</script>
 {% endblock %}

@@ -14,7 +14,7 @@ from reportlab.lib import colors
 from flask_session import Session
 import tempfile
 import os
-
+import markdown  # Add this import
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -104,20 +104,24 @@ def create_study_guide():
     
     try:
         # Generate study guide using Gemini API
-        study_guide = generate_study_guide(extracted_text)
+        study_guide_markdown = generate_study_guide(extracted_text)
         
         # Generate a unique ID for this study guide
         study_guide_id = str(uuid.uuid4())
         
         # Save the study guide to a file instead of the session
-        study_guide_file = os.path.join(app.config['OUTPUT_FOLDER'], f"{study_guide_id}_study_guide.txt")
+        study_guide_file = os.path.join(app.config['OUTPUT_FOLDER'], f"{study_guide_id}_study_guide.md")
         with open(study_guide_file, 'w', encoding='utf-8') as f:  # Specify UTF-8 encoding
-            f.write(study_guide)
+            f.write(study_guide_markdown)
+        
+        # Convert Markdown to HTML with the tables extension
+        study_guide_html = markdown.markdown(study_guide_markdown, extensions=['tables'])
         
         # Store only the ID in the session
         session['study_guide_id'] = study_guide_id
         
-        return render_template('study_guide.html', study_guide=study_guide, pdf_filename=session.get('pdf_filename'))
+        # Pass the rendered HTML to the template
+        return render_template('study_guide.html', study_guide=study_guide_html, pdf_filename=session.get('pdf_filename'))
     
     except Exception as e:
         logger.error(f"Error generating study guide: {str(e)}")
@@ -142,18 +146,18 @@ def create_quiz():
         # Parse the JSON string into a Python object
         quiz_data = json.loads(quiz)
         
-        # Generate a unique ID for this quiz
-        quiz_id = str(uuid.uuid4())
+        # Convert quiz JSON into Markdown format
+        markdown_content = ""
+        for i, question in enumerate(quiz_data, 1):
+            markdown_content += f"### Question {i}: {question['question']}\n"
+            for j, option in enumerate(question['options'], 1):
+                markdown_content += f"- {option}\n"
+            markdown_content += f"**Answer:** {question['answer']}\n\n"
         
-        # Save the quiz to a file instead of the session
-        quiz_file = os.path.join(app.config['OUTPUT_FOLDER'], f"{quiz_id}_quiz.json")
-        with open(quiz_file, 'w', encoding='utf-8') as f:  # Specify UTF-8 encoding
-            f.write(quiz)
+        # Convert Markdown to HTML with the tables extension
+        html_content = markdown.markdown(markdown_content, extensions=['tables'])
         
-        # Store only the ID in the session
-        session['quiz_id'] = quiz_id
-        
-        return render_template('quiz.html', quiz=quiz_data, pdf_filename=session.get('pdf_filename'))
+        return render_template('quiz.html', quiz_html=html_content, pdf_filename=session.get('pdf_filename'))
     
     except Exception as e:
         logger.error(f"Error generating quiz: {str(e)}")
@@ -169,7 +173,7 @@ def download_study_guide():
         return redirect(url_for('index'))
     
     # Get the study guide file path
-    study_guide_file = os.path.join(app.config['OUTPUT_FOLDER'], f"{study_guide_id}_study_guide.txt")
+    study_guide_file = os.path.join(app.config['OUTPUT_FOLDER'], f"{study_guide_id}_study_guide.md")
     
     # Check if the file exists
     if not os.path.exists(study_guide_file):
@@ -177,8 +181,11 @@ def download_study_guide():
         return redirect(url_for('index'))
     
     # Read the original study guide
-    with open(study_guide_file, 'r', encoding='utf-8') as source:  # Specify UTF-8 encoding
-        study_guide_content = source.read()
+    with open(study_guide_file, 'r', encoding='utf-8') as source:
+        study_guide_markdown = source.read()
+    
+    # Convert Markdown to HTML with the tables extension
+    study_guide_html = markdown.markdown(study_guide_markdown, extensions=['tables'])
     
     # Create a PDF file
     pdf_filename = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
@@ -203,13 +210,15 @@ def download_study_guide():
     normal_style.fontSize = 11
     normal_style.leading = 14
     
-    heading_style = ParagraphStyle(
-        name="Heading2",
-        fontName="Helvetica-Bold",
-        fontSize=14,
-        leading=18,
-        spaceAfter=10,
-        textColor=colors.darkblue
+    bullet_style = ParagraphStyle(
+        name="Bullet",
+        fontName="Helvetica",
+        fontSize=11,
+        leading=14,
+        leftIndent=20,
+        bulletFontName="Helvetica",
+        bulletFontSize=11,
+        bulletIndent=10
     )
     
     # Create the content for the PDF
@@ -220,41 +229,58 @@ def download_study_guide():
     story.append(Paragraph(title, title_style))
     story.append(Spacer(1, 0.25 * inch))
     
-    # Process the study guide content to maintain formatting
-    # Split by lines and process each line
-    lines = study_guide_content.split('\n')
-    current_paragraph = ""
+    # Add the rendered HTML content
+    from bs4 import BeautifulSoup
+    from reportlab.platypus import Table, TableStyle
+    from reportlab.lib import colors
+
+    soup = BeautifulSoup(study_guide_html, 'html.parser')
     
-    for line in lines:
-        # Check if the line is a heading (these are often in ALL CAPS or end with colons)
-        is_heading = line.strip().isupper() or line.strip().endswith(':') or len(line.strip()) < 50 and line.strip() != ''
-        
-        if is_heading and line.strip():
-            # First add the previous paragraph if there is one
-            if current_paragraph:
-                story.append(Paragraph(current_paragraph, normal_style))
-                story.append(Spacer(1, 0.1 * inch))
-                current_paragraph = ""
+    for element in soup.find_all(['h1', 'h2', 'h3', 'p', 'ul', 'li', 'code', 'table', 'tr', 'th', 'td']):
+        if element.name in ['h1', 'h2', 'h3']:
+            style = ParagraphStyle(
+                name=element.name,
+                fontName="Helvetica-Bold",
+                fontSize=14 if element.name == 'h1' else 12,
+                leading=16,
+                spaceAfter=10
+            )
+            story.append(Paragraph(element.get_text(), style))
+        elif element.name == 'p':
+            story.append(Paragraph(element.get_text(), normal_style))
+        elif element.name == 'ul':
+            for li in element.find_all('li'):
+                story.append(Paragraph(f"- {li.get_text()}", normal_style))
+        elif element.name == 'code':
+            code_style = ParagraphStyle(
+                name="Code",
+                fontName="Courier",
+                fontSize=10,
+                leading=12,
+                backColor="#f0f0f0",
+                leftIndent=10
+            )
+            story.append(Paragraph(element.get_text(), code_style))
+        elif element.name == 'table':
+            # Handle tables
+            table_data = []
+            for row in element.find_all('tr'):
+                table_row = [cell.get_text() for cell in row.find_all(['th', 'td'])]
+                table_data.append(table_row)
             
-            # Add the heading
-            story.append(Spacer(1, 0.1 * inch))
-            story.append(Paragraph(line, heading_style))
-        elif line.strip() == "":
-            # Empty line means paragraph break
-            if current_paragraph:
-                story.append(Paragraph(current_paragraph, normal_style))
-                story.append(Spacer(1, 0.1 * inch))
-                current_paragraph = ""
-        else:
-            # Regular content - add to current paragraph
-            if current_paragraph:
-                current_paragraph += " " + line.strip()
-            else:
-                current_paragraph = line.strip()
-    
-    # Don't forget to add the last paragraph if there is one
-    if current_paragraph:
-        story.append(Paragraph(current_paragraph, normal_style))
+            # Create a table with gridlines
+            table = Table(table_data)
+            table.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Add gridlines
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),  # Header background
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all cells
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Vertically align all cells
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Bold font for header
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),  # Regular font for body
+                ('FONTSIZE', (0, 0), (-1, -1), 10),  # Font size
+            ]))
+            story.append(table)
+        story.append(Spacer(1, 0.1 * inch))
     
     # Build the PDF
     doc.build(story)

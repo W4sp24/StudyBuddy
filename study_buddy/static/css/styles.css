@@ -1,0 +1,17 @@
+/* Add borders to tables */
+.table-bordered table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.table-bordered table th,
+.table-bordered table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.table-bordered table th {
+    background-color: #f2f2f2;
+    text-align: center;
+    font-weight: bold;
+}

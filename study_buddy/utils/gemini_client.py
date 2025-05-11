@@ -39,7 +39,7 @@ def generate_study_guide(text):
         text (str): Text extracted from the PDF
         
     Returns:
-        str: Generated study guide
+        str: Generated study guide in Markdown format
     """
     try:
         model = get_gemini_model()
@@ -58,7 +58,7 @@ def generate_study_guide(text):
 
         Content Requirements:
 
-        - Define Key Terms: Clearly define all essential terms and concepts related to the topic.
+        - Define Key Terms: Clearly define all essential terms and concepts related to the topic. Define the terms exactly as they are used in the text.
         - Provide Examples: Include short, relevant examples to illustrate concepts.
         - Explain Core Principles: Detail the fundamental ideas and mechanisms of the topic.
         - Include Comparisons/Contrasts (if applicable): Use tables or bullet points to compare related concepts.
@@ -70,7 +70,7 @@ def generate_study_guide(text):
 
         - Use Clear Headings: Structure the reviewer with main headings and subheadings (e.g., using Markdown #, ##, ###).
         - Use Bullet Points: Ensure liberal use of bullet points (-) for lists, facts, definitions, and key points within sections.
-        - Use Tables: Create tables for comparisons or structured information when appropriate.
+        -Use Tables: Create tables for comparisons or structured information when appropriate, using standard Markdown syntax for proper rendering.
         - Format Code: Use code blocks (```language) for any code examples.
         - Use LaTeX (Optional): Use LaTeX formatting ($...$ or $$...$$) ONLY for mathematical or scientific notation where appropriate, NOT for regular text.
 
@@ -83,14 +83,15 @@ def generate_study_guide(text):
 
         Output Format:
 
-        - Provide the output cleanly formatted for easy copy-pasting into documents or notes applications (like Google Docs, Notion, etc.).
+        - Provide the output cleanly formatted in Markdown for easy rendering into HTML.
+        - Make sure every component is properly rendered in Markdown.
         - Avoid conversational filler at the beginning or end; go straight into the reviewer content.
 
         Request: Generate the comprehensive reviewer based on the topic, level, content, formatting, and style guidelines provided above.
         """
         
         response = model.generate_content(prompt)
-        study_guide = response.text
+        study_guide = response.text  # Gemini outputs Markdown-like content
         
         return study_guide
     
